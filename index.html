@@ -64,7 +64,7 @@ body{
   line-height:1.55; letter-spacing:0.008em;
   font-optical-sizing:auto;
   -webkit-font-smoothing:antialiased;
-  min-height:100vh;min-height:100dvh;
+  min-height:100dvh;
 }
 h1,h2,h3,h4{overflow-wrap:anywhere;line-height:1.12;letter-spacing:-0.015em}
 button,input,textarea,select{font:inherit;color:inherit}
@@ -194,11 +194,75 @@ button{background:none;border:0;cursor:pointer}
 .dayhead h2{font-size:clamp(1.65rem,4vw,2.15rem);font-weight:800;font-stretch:112%;text-transform:uppercase}
 .dayhead .focus{color:var(--text-3);font-size:0.875rem;margin-top:2px}
 
+/* ── Readiness check-in ─────────────────────────────────────────── */
+.today-card{
+  margin:18px 0 20px;padding:18px;border:1px solid rgba(255,255,255,.075);border-radius:18px;
+  background:linear-gradient(145deg,rgba(35,30,25,.96),rgba(20,17,14,.94));
+  box-shadow:0 18px 42px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.025);overflow:hidden;
+}
+.today-head{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:16px}
+.today-title{font-size:1.02rem;line-height:1.2;font-weight:780;letter-spacing:-.012em;color:var(--text)}
+.today-subtitle{margin-top:5px;max-width:62ch;font-size:.74rem;line-height:1.5;color:var(--text-3)}
+.today-score{flex:none;display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:5px 10px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.035);font-family:var(--mono);font-size:.66rem;font-weight:650;color:var(--text-2);white-space:nowrap}
+.today-score.good{border-color:rgba(83,192,155,.42);background:var(--jade-wash);color:var(--jade)}
+.today-score.watch{border-color:rgba(241,199,89,.36);background:var(--gold-wash);color:var(--gold)}
+.today-score.low{border-color:rgba(240,109,53,.42);background:var(--ember-wash);color:var(--ember-ink)}
+.readiness-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.readiness-field{min-width:0;padding:12px;border:1px solid rgba(255,255,255,.065);border-radius:14px;background:rgba(10,8,7,.24)}
+.readiness-field.time-field{grid-column:1/-1;display:grid;grid-template-columns:minmax(150px,.48fr) minmax(0,1.52fr);align-items:center;gap:14px}
+.readiness-field-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.time-field .readiness-field-head{display:grid;gap:3px;margin:0}
+.readiness-label{font-size:.78rem;line-height:1.2;font-weight:720;color:var(--text)}
+.readiness-hint{font-size:.62rem;line-height:1.3;color:var(--text-3);text-align:right;white-space:nowrap}
+.time-field .readiness-hint{text-align:left;white-space:normal}
+.ready-scale{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.ready-scale button{
+  min-width:0;min-height:58px;padding:7px 3px 6px;border:1px solid rgba(255,255,255,.08);border-radius:11px;background:rgba(255,255,255,.035);color:var(--text-2);
+  display:grid;place-items:center;align-content:center;gap:4px;line-height:1;transition:transform .14s var(--quart),background .14s,border-color .14s,color .14s,box-shadow .14s;-webkit-tap-highlight-color:transparent
+}
+.ready-scale .ready-num{font-family:var(--mono);font-size:1.02rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+.ready-scale .ready-word{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.53rem;font-weight:650;letter-spacing:.025em;text-transform:uppercase;color:var(--text-3)}
+.ready-scale button:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);transform:translateY(-1px)}
+.ready-scale button:active{transform:scale(.97)}
+.ready-scale button[aria-pressed="true"]{border-color:var(--ember);background:linear-gradient(180deg,rgba(240,109,53,.25),rgba(61,28,15,.92));box-shadow:0 0 0 1px rgba(240,109,53,.12) inset,0 8px 18px rgba(0,0,0,.15)}
+.ready-scale button[aria-pressed="true"] .ready-num{color:var(--ember-ink)}
+.ready-scale button[aria-pressed="true"] .ready-word{color:rgba(255,195,155,.82)}
+.time-control{display:grid;grid-template-columns:minmax(0,1fr) 118px;gap:8px;align-items:center}
+.time-presets{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.time-preset{min-width:0;min-height:44px;padding:0 5px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.035);color:var(--text-2);font-family:var(--mono);font-size:.72rem;font-weight:650;transition:transform .14s var(--quart),background .14s,border-color .14s,color .14s,box-shadow .14s;-webkit-tap-highlight-color:transparent}
+.time-preset:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);color:var(--text)}
+.time-preset:active{transform:scale(.97)}
+.time-preset[aria-pressed="true"]{border-color:var(--ember);background:linear-gradient(180deg,rgba(240,109,53,.24),rgba(61,28,15,.9));color:var(--ember-ink);box-shadow:0 0 0 1px rgba(240,109,53,.1) inset}
+.time-custom{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px}
+.time-custom input{width:100%;min-width:0;height:44px;padding:0 9px;border:1px solid rgba(255,255,255,.09);border-radius:10px;background:rgba(255,255,255,.035);color:var(--text);font-family:var(--mono);font-size:.8rem;outline:none;appearance:textfield}
+.time-custom input::-webkit-inner-spin-button,.time-custom input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.time-custom input:focus{border-color:var(--ember-dim);box-shadow:0 0 0 3px rgba(240,109,53,.08)}
+.time-custom span{font-size:.62rem;color:var(--text-3)}
+.today-advice{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:11px;padding:10px 12px;border:1px solid rgba(255,255,255,.055);border-radius:12px;background:rgba(8,7,6,.22)}
+.today-advice-main{min-width:0;display:grid;gap:4px}
+.today-advice-line{font-size:.75rem;line-height:1.5;color:var(--text-2)}
+.today-advice-line strong{color:var(--text);font-weight:640}
+.today-reasons{font-size:.65rem;line-height:1.45;color:var(--text-3)}
+.today-advice .actions{flex:none;display:flex;gap:6px;align-items:center}
+.fatigue-tag{display:inline-flex;align-items:center;margin-right:7px;padding:3px 7px;border:1px solid var(--line);border-radius:999px;background:var(--ink-3);font-family:var(--mono);font-size:.56rem;font-weight:650;letter-spacing:.035em;text-transform:uppercase;color:var(--text-2);vertical-align:1px}
+.fatigue-tag.good{border-color:rgba(83,192,155,.34);background:var(--jade-wash);color:var(--jade)}
+.fatigue-tag.watch{border-color:rgba(241,199,89,.34);background:var(--gold-wash);color:var(--gold)}
+.fatigue-tag.deload{border-color:rgba(240,109,53,.4);background:var(--ember-wash);color:var(--ember-ink)}
+@media(max-width:900px){.readiness-grid{grid-template-columns:1fr}.readiness-field.time-field{grid-column:auto;display:block}.time-field .readiness-field-head{display:flex;margin-bottom:10px}.time-field .readiness-hint{text-align:right;white-space:nowrap}.time-control{grid-template-columns:minmax(0,1fr) 112px}}
+@media(max-width:640px){
+  .today-card{margin:14px 0 17px;padding:13px;border-radius:15px}.today-head{align-items:flex-start;gap:10px;margin-bottom:12px}.today-title{font-size:.94rem}.today-subtitle{font-size:.68rem;line-height:1.45}.today-score{font-size:.59rem;min-height:27px;padding:4px 8px}
+  .readiness-grid{gap:8px}.readiness-field{padding:10px;border-radius:12px}.readiness-field-head{margin-bottom:8px}.readiness-label{font-size:.76rem}.readiness-hint{font-size:.59rem}
+  .ready-scale{gap:4px}.ready-scale button{min-height:56px;border-radius:10px;padding:6px 2px}.ready-scale .ready-num{font-size:1rem}.ready-scale .ready-word{font-size:.49rem}
+  .time-control{grid-template-columns:1fr;gap:7px}.time-presets{gap:4px}.time-preset{min-height:43px;font-size:.7rem}.time-custom{grid-template-columns:minmax(0,1fr) auto}.time-custom input{height:42px}
+  .today-advice{display:grid;gap:8px;padding:10px}.today-advice .actions{justify-content:flex-start}.today-advice .actions .mini{min-height:38px}
+}
+@media(max-width:390px){.today-head{display:grid}.today-score{justify-self:start}.readiness-field-head,.time-field .readiness-field-head{display:grid;gap:2px}.readiness-hint,.time-field .readiness-hint{text-align:left;white-space:normal}.ready-scale .ready-word{font-size:.45rem}.today-advice-line{font-size:.72rem}}
+
 .prep{display:flex;gap:var(--s-2);flex-wrap:wrap;align-items:flex-start;margin-bottom:var(--s-5)}
 .prep-card{flex:1 1 300px;align-self:flex-start;background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--r-md);overflow:hidden;transition:border-color .2s var(--quart),background .2s var(--quart),box-shadow .2s var(--quart)}
 .prep-card:hover{border-color:var(--line)}
 .prep-card[open]{background:var(--panel-2);border-color:var(--line);box-shadow:0 12px 28px rgba(0,0,0,.12)}
-.prep-card summary{list-style:none;cursor:pointer;padding:12px 13px;display:grid;grid-template-columns:32px minmax(0,1fr) auto 24px;align-items:center;gap:10px;-webkit-user-select:none;user-select:none}
+.prep-card summary{list-style:none;cursor:pointer;padding:12px 13px;display:grid;grid-template-columns:32px minmax(0,1fr) auto 24px;align-items:center;gap:10px;user-select:none;-webkit-user-select:none}
 .prep-card summary::-webkit-details-marker{display:none}
 .prep-icon{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--ink-3);color:var(--text-2);font-family:var(--mono);font-size:1rem;font-weight:600;transition:background .2s,color .2s,transform .2s var(--quart)}
 .prep-card.warm[open] .prep-icon{background:var(--ember-wash);color:var(--ember-ink)}
@@ -740,135 +804,11 @@ body.coach-open .fab-icon-close{display:block}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
 </style>
-<style id="strength-intelligence-style">
-/* ══════════════════════════════════════════════════════════════════
-   STRENGTH INTELLIGENCE UI
-   Restored as a dedicated module so readiness, goals, swaps, ramp-ups,
-   plate calculations and strength targets never fall back to raw HTML.
-   ══════════════════════════════════════════════════════════════════ */
-.today-card{
-  margin:0 0 var(--s-4);border:1px solid var(--line-soft);border-radius:var(--r-lg);
-  background:linear-gradient(180deg,rgba(35,31,27,.90),rgba(22,19,15,.88));
-  overflow:hidden;box-shadow:0 10px 32px rgba(0,0,0,.10)
-}
-.today-head{
-  display:flex;gap:12px;align-items:flex-start;justify-content:space-between;
-  padding:13px 15px;border-bottom:1px solid var(--line-soft)
-}
-.today-title{font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-2)}
-.today-head .quiet-note{margin-top:3px;line-height:1.35}
-.today-score{
-  font-family:var(--mono);font-size:.72rem;font-weight:600;padding:5px 8px;border-radius:8px;
-  border:1px solid var(--line);background:var(--ink-3);color:var(--text-2);white-space:nowrap
-}
-.today-score.good{background:var(--jade-wash);border-color:rgba(83,192,155,.55);color:var(--jade)}
-.today-score.watch{background:var(--gold-wash);border-color:rgba(241,199,89,.55);color:var(--gold)}
-.today-score.low{background:var(--ember-wash);border-color:rgba(240,109,53,.55);color:var(--ember-ink)}
-.readiness-grid{
-  display:grid;grid-template-columns:repeat(3,minmax(150px,1fr)) minmax(116px,.62fr);
-  gap:10px;padding:13px 15px;align-items:end
-}
-.readiness-field{display:grid;gap:6px;min-width:0}
-.readiness-field .lb{font-size:.63rem;letter-spacing:.07em;text-transform:uppercase;color:var(--text-3);font-weight:700;line-height:1.2}
-.ready-scale{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
-.ready-scale button{
-  min-width:0;height:34px;border:1px solid var(--line-soft);border-radius:8px;background:var(--panel-2);
-  font-family:var(--mono);font-size:.72rem;font-weight:600;color:var(--text-3);
-  transition:transform .15s var(--quart),border-color .15s,background .15s,color .15s
-}
-.ready-scale button:hover{border-color:var(--line);color:var(--text);transform:translateY(-1px)}
-.ready-scale button:active{transform:translateY(0)}
-.ready-scale button[aria-pressed="true"]{
-  border-color:var(--ember-dim);background:var(--ember-wash);color:var(--ember-ink);
-  box-shadow:inset 0 0 0 1px rgba(240,109,53,.10)
-}
-.readiness-field input{
-  height:34px;width:100%;min-width:0;padding:6px 9px;border:1px solid var(--line-soft);border-radius:8px;
-  background:var(--panel-2);font-family:var(--mono);font-size:.76rem;color:var(--text)
-}
-.readiness-field input:hover{border-color:var(--line)}
-.readiness-field input:focus{outline:none;border-color:var(--ember-dim);background:rgba(42,36,31,.96)}
-.today-advice{
-  display:flex;gap:12px;align-items:center;justify-content:space-between;padding:11px 15px;
-  border-top:1px solid var(--line-soft);font-size:.78rem;color:var(--text-2);line-height:1.55
-}
-.today-advice>div:first-child{min-width:0}
-.today-advice strong{color:var(--text);font-weight:600}
-.today-advice .actions{display:flex;gap:6px;flex:0 0 auto}
-.fatigue-tag{
-  display:inline-flex;align-items:center;font-family:var(--mono);font-size:.62rem;font-weight:600;
-  text-transform:uppercase;letter-spacing:.06em;border:1px solid var(--line);border-radius:6px;
-  padding:3px 6px;margin-right:4px;color:var(--text-3);white-space:nowrap;vertical-align:1px
-}
-.fatigue-tag.watch{border-color:rgba(241,199,89,.65);background:var(--gold-wash);color:var(--gold)}
-.fatigue-tag.deload{border-color:rgba(240,109,53,.65);background:var(--ember-wash);color:var(--ember-ink)}
-.fatigue-tag.good{border-color:rgba(83,192,155,.65);background:var(--jade-wash);color:var(--jade)}
-.ex-sub .today-target{color:var(--jade);font-family:var(--mono);font-size:.72rem;font-weight:600}
-.ex-sub .today-target.adjusted{color:var(--gold)}
-.ex-swapped{display:inline-flex;color:var(--gold);font-family:var(--mono);font-size:.66rem;font-weight:600}
-
-/* Warm-up / plate tool */
-.tool-card{padding:12px;border:1px solid var(--line-soft);border-radius:12px;background:var(--panel);display:grid;gap:10px;min-width:0}
-.tool-card h4{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3)}
-.ramp-list{display:grid;gap:6px}
-.ramp-row{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 9px;border-radius:8px;background:var(--panel-2);font-size:.78rem}
-.ramp-row .n{font-family:var(--mono);color:var(--text-3)}
-.ramp-row .w{font-family:var(--mono);font-weight:600;color:var(--text)}
-.ramp-row .r{font-family:var(--mono);color:var(--text-3);white-space:nowrap}
-.plate-result{font-family:var(--mono);font-size:.78rem;line-height:1.7;color:var(--text-2);overflow-wrap:anywhere}
-.prep-step-copy .auto-ramp-note{display:block;font-family:var(--mono);font-size:.66rem;color:var(--jade);margin-top:2px}
-
-/* Exercise swap chooser */
-.swap-grid{display:grid;gap:7px}
-.swap-choice{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;text-align:left;padding:10px 11px;border:1px solid var(--line-soft);border-radius:10px;background:var(--panel);color:var(--text-2);transition:border-color .15s,background .15s,transform .15s var(--quart)}
-.swap-choice:hover{border-color:var(--ember-dim);background:var(--panel-2);color:var(--text);transform:translateY(-1px)}
-.swap-choice strong{font-size:.83rem;color:inherit;overflow-wrap:anywhere}
-.swap-choice span{font-size:.68rem;color:var(--text-3);white-space:nowrap}
-
-/* Strength goals */
-.goal-list{display:grid}
-.goal-row{padding:12px 15px;border-bottom:1px solid var(--line-soft);display:grid;gap:7px;min-width:0}
-.goal-row:last-child{border-bottom:0}
-.goal-top{display:flex;align-items:center;gap:10px;justify-content:space-between;min-width:0}
-.goal-name{font-size:.83rem;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.goal-target{font-family:var(--mono);font-size:.75rem;color:var(--gold);white-space:nowrap}
-.goal-progress{height:6px;border-radius:99px;background:var(--ink-3);overflow:hidden}
-.goal-progress i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--jade),rgb(121,214,180));width:var(--p,0%);max-width:100%}
-.goal-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:.65rem;color:var(--text-3);min-width:0}
-.goal-meta>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.goal-remove{color:var(--text-3);font-size:.68rem;flex:none}
-.goal-remove:hover{color:var(--ember-ink)}
-
-/* A little extra resilience for the analytics introduced later. */
-.insight-card,.program-day,.session-card,.today-card{contain:layout paint}
-.mini-chart,.trend-chart{max-width:100%}
-.insight-body,.month-review,.review-body{overflow-wrap:anywhere}
-.metric-strip .v{font-variant-numeric:tabular-nums}
-
-@media(max-width:1120px){
-  .readiness-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
-@media(max-width:760px){
-  .today-card{border-radius:14px}
-  .readiness-grid{grid-template-columns:1fr 1fr;padding:11px 12px}
-  .today-head,.today-advice{padding-left:12px;padding-right:12px}
-  .today-advice{align-items:flex-start;flex-direction:column}
-  .today-advice .actions{width:100%}.today-advice .actions .mini{flex:1}
-  .goal-row{padding-left:12px;padding-right:12px}
-  .swap-choice{grid-template-columns:1fr}.swap-choice span{white-space:normal}
-}
-@media(max-width:430px){
-  .readiness-grid{grid-template-columns:1fr}
-  .ready-scale button{height:38px;font-size:.76rem}
-  .today-head{align-items:center}.today-head .quiet-note{max-width:28ch}
-  .goal-meta{align-items:flex-start}.goal-meta>span{white-space:normal}
-}
-</style>
 <style id="standout-style">
 /* ══════════════════════════════════════════════════════════════════
    IRON LEDGER PRO — dashboard, history, programming, PWA polish
    ══════════════════════════════════════════════════════════════════ */
-.app-nav{display:flex;gap:6px;align-items:center;margin:-6px 0 var(--s-5);padding:5px;border:1px solid var(--line-soft);border-radius:14px;background:rgba(28,26,24,.72);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);position:sticky;top:8px;z-index:26}
+.app-nav{display:flex;gap:6px;align-items:center;margin:-6px 0 var(--s-5);padding:5px;border:1px solid var(--line-soft);border-radius:14px;background:rgba(28,26,24,.72);backdrop-filter:blur(12px);position:sticky;top:8px;z-index:26}
 .app-nav button{flex:0 1 auto;padding:8px 13px;border-radius:10px;font-size:.78rem;font-weight:700;color:var(--text-3);transition:background .16s,color .16s,border-color .16s;border:1px solid transparent}
 .app-nav button:hover{color:var(--text);background:var(--panel-2)}
 .app-nav button[aria-selected="true"]{color:var(--text);background:var(--ember-wash);border-color:var(--ember-dim)}
@@ -1745,17 +1685,54 @@ function readinessAdvice(day=S.day){
 }
 function renderTodayCard(){
   const d=draft(), r=d.readiness, adv=readinessAdvice(), fat=fatigueStatus();
-  const scale=(key)=>[1,2,3,4,5].map(v=>`<button type="button" data-ready="${key}" data-value="${v}" aria-pressed="${+r[key]===v}">${v}</button>`).join('');
+  const words={
+    sleep:['Very poor','Poor','Okay','Good','Excellent'],
+    energy:['Drained','Low','Okay','Good','Strong'],
+    soreness:['Fresh','Slight','Moderate','Sore','Very sore']
+  };
+  const scale=(key)=>[1,2,3,4,5].map(v=>`<button type="button" data-ready="${key}" data-value="${v}" aria-label="${esc(key)} ${v} of 5 · ${esc(words[key][v-1])}" title="${esc(words[key][v-1])}" aria-pressed="${+r[key]===v}"><span class="ready-num">${v}</span><span class="ready-word">${esc(words[key][v-1])}</span></button>`).join('');
+  const rated=['sleep','energy','soreness'].filter(k=>+r[k]>=1&&+r[k]<=5).length;
+  const scoreText=adv.score==null?`${rated}/3 rated`:adv.label;
+  const times=[30,45,60,75,90];
+  const timeButtons=times.map(v=>`<button class="time-preset" type="button" data-ready-time="${v}" aria-pressed="${+r.time===v}">${v}m</button>`).join('');
   $('#today-card').innerHTML=`
-    <div class="today-head"><div><div class="today-title">Today · readiness & fatigue</div><div class="quiet-note">1 = low · 5 = high. For soreness, 5 = very sore.</div></div><span class="today-score ${adv.tone}">${esc(adv.label)}</span></div>
-    <div class="readiness-grid">
-      <label class="readiness-field"><span class="lb">Sleep quality</span><span class="ready-scale">${scale('sleep')}</span></label>
-      <label class="readiness-field"><span class="lb">Energy</span><span class="ready-scale">${scale('energy')}</span></label>
-      <label class="readiness-field"><span class="lb">Soreness</span><span class="ready-scale">${scale('soreness')}</span></label>
-      <label class="readiness-field"><span class="lb">Minutes available</span><input id="ready-time" type="number" min="15" max="240" step="5" value="${esc(r.time||'')}" placeholder="60"></label>
+    <div class="today-head">
+      <div>
+        <div class="today-title">Pre-workout check-in</div>
+        <div class="today-subtitle">Three quick ratings help Iron Ledger adjust today’s heavy targets and fatigue advice.</div>
+      </div>
+      <span class="today-score ${adv.tone}">${esc(scoreText)}</span>
     </div>
-    <div class="today-advice"><div><span class="fatigue-tag ${fat.level}">${esc(fat.label)}</span> <strong>${esc(adv.text)}</strong>${fat.reasons?.length?`<div class="quiet-note" style="margin-top:4px">${esc(fat.reasons.slice(0,3).join(' · '))}</div>`:''}</div><div class="actions">${fat.level!=='good'||d.deload?`<button class="mini ${d.deload?'ghost':'solid'}" type="button" data-ready-action="deload">${d.deload?'Remove deload':'Apply deload today'}</button>`:''}</div></div>`;
+    <div class="readiness-grid">
+      <div class="readiness-field">
+        <div class="readiness-field-head"><span class="readiness-label">Sleep quality</span><span class="readiness-hint">1 poor · 5 excellent</span></div>
+        <div class="ready-scale" role="group" aria-label="Sleep quality from 1 to 5">${scale('sleep')}</div>
+      </div>
+      <div class="readiness-field">
+        <div class="readiness-field-head"><span class="readiness-label">Energy</span><span class="readiness-hint">1 drained · 5 strong</span></div>
+        <div class="ready-scale" role="group" aria-label="Energy from 1 to 5">${scale('energy')}</div>
+      </div>
+      <div class="readiness-field">
+        <div class="readiness-field-head"><span class="readiness-label">Soreness</span><span class="readiness-hint">1 fresh · 5 very sore</span></div>
+        <div class="ready-scale" role="group" aria-label="Soreness from 1 to 5">${scale('soreness')}</div>
+      </div>
+      <div class="readiness-field time-field">
+        <div class="readiness-field-head"><span class="readiness-label">Time available</span><span class="readiness-hint">session length</span></div>
+        <div class="time-control">
+          <div class="time-presets" role="group" aria-label="Available training time">${timeButtons}</div>
+          <div class="time-custom"><input id="ready-time" type="number" min="15" max="240" step="5" inputmode="numeric" value="${esc(r.time||'')}" placeholder="Custom"><span>minutes</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="today-advice">
+      <div class="today-advice-main">
+        <div class="today-advice-line"><span class="fatigue-tag ${fat.level}">${esc(fat.label)}</span><strong>${esc(adv.text)}</strong></div>
+        ${fat.reasons?.length?`<div class="today-reasons">${esc(fat.reasons.slice(0,3).join(' · '))}</div>`:''}
+      </div>
+      <div class="actions">${fat.level!=='good'||d.deload?`<button class="mini ${d.deload?'ghost':'solid'}" type="button" data-ready-action="deload">${d.deload?'Remove deload':'Apply deload today'}</button>`:''}</div>
+    </div>`;
 }
+
 function goalProgress(goal){
   const found=findItem(goal.exerciseId), item=found?.item;
   if(!item) return {pct:0,current:0,target:e1rm(+goal.weight||0,+goal.reps||1)};
@@ -1983,6 +1960,8 @@ $('#prep').addEventListener('click', e=>{
 $('#today-card').addEventListener('click', e=>{
   const b=e.target.closest('[data-ready]');
   if(b){ draft().readiness[b.dataset.ready]=+b.dataset.value; persistDraft(); renderDay(); return; }
+  const tb=e.target.closest('[data-ready-time]');
+  if(tb){ draft().readiness.time=+tb.dataset.readyTime; persistDraft(); renderTodayCard(); return; }
   const act=e.target.closest('[data-ready-action]')?.dataset.readyAction;
   if(act==='deload'){ draft().deload=!draft().deload; persistDraft(); renderDay(); toast(draft().deload?'Deload applied to today':'Deload removed','ok'); }
 });
