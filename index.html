@@ -867,8 +867,8 @@ body.coach-open .fab-icon-close{display:block}
 <style id="interaction-upgrade-style">
 
 /* IRON_LEDGER_INTERACTION_UPGRADE_V1 */
-#timer.timer{display:flex!important;position:fixed;right:22px;bottom:22px;z-index:155;width:min(300px,calc(100vw - 24px));min-height:74px;padding:9px;align-items:center;gap:9px;border:1px solid rgba(240,109,53,.48);border-radius:18px;background:linear-gradient(145deg,rgba(52,27,17,.98),rgba(24,18,14,.98));box-shadow:0 24px 64px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.04);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);opacity:.86;-webkit-user-select:none;user-select:none;transition:opacity .16s,border-color .16s,box-shadow .16s}
-#timer.timer.on{opacity:1;border-color:var(--ember);box-shadow:0 26px 72px rgba(0,0,0,.52),0 0 28px rgba(240,109,53,.10)}
+#timer.timer{display:none!important;position:fixed;right:22px;bottom:22px;z-index:155;width:min(300px,calc(100vw - 24px));min-height:74px;padding:9px;align-items:center;gap:9px;border:1px solid rgba(240,109,53,.48);border-radius:18px;background:linear-gradient(145deg,rgba(52,27,17,.98),rgba(24,18,14,.98));box-shadow:0 24px 64px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.04);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);opacity:0;-webkit-user-select:none;user-select:none;transition:opacity .16s,border-color .16s,box-shadow .16s}
+#timer.timer.on{display:flex!important;opacity:1;border-color:var(--ember);box-shadow:0 26px 72px rgba(0,0,0,.52),0 0 28px rgba(240,109,53,.10)}
 #timer .timer-drag{flex:0 0 24px;align-self:stretch;display:grid;place-items:center;border:1px solid transparent;border-radius:10px;background:rgba(255,255,255,.02);color:rgba(255,255,255,.4);cursor:grab;touch-action:none;font-size:15px;padding:0}
 #timer .timer-drag:hover{color:var(--text);border-color:rgba(255,255,255,.08);background:rgba(255,255,255,.045)}
 #timer .timer-drag:active{cursor:grabbing}
@@ -877,8 +877,6 @@ body.coach-open .fab-icon-close{display:block}
 #timer .lbl{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.61rem;line-height:1.2}
 #timer .acts{margin-left:0;display:grid;grid-template-columns:1fr 1fr;gap:5px}
 #timer .acts .mini{min-height:34px;padding:5px 8px;font-size:.65rem;background:rgba(255,255,255,.035)}
-#timer:not(.on) .timer-ring .fg{opacity:.28}
-#timer:not(.on) .t{color:var(--text-2)}
 #timer.dragging{transition:none;opacity:1}
 .session-timer-bar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 15px;border-bottom:1px solid var(--line-soft);background:rgba(10,8,7,.18)}
 .session-timer-copy{display:grid;gap:3px;min-width:0}.session-timer-label{font-size:.61rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);font-weight:700}.session-elapsed{font-family:var(--mono);font-size:1.44rem;line-height:1;font-weight:650;letter-spacing:-.04em;font-variant-numeric:tabular-nums;color:var(--text)}
@@ -1077,7 +1075,7 @@ body.coach-open .fab-icon-close{display:block}
         <div class="data-actions">
           <button class="mini ghost" id="btn-export">Export JSON</button>
           <button class="mini ghost" id="btn-import">Import</button>
-          <button class="mini ghost danger" id="btn-wipe">Reset data</button>
+          <button class="mini ghost danger" id="btn-wipe" title="Clear completed workout history">Clear history</button>
         </div>
       </div>
     </aside>
@@ -3046,9 +3044,11 @@ $('#btn-import').onclick = ()=>{
   inp.click();
 };
 $('#btn-wipe').onclick = ()=>{
-  if(!confirm('Wipe every session, PR and plan change on this device?')) return;
-  Object.keys(localStorage).filter(k=>k.startsWith(K)).forEach(k=>localStorage.removeItem(k));
-  location.reload();
+  if(!confirm('Clear all completed workout history on this device?')) return;
+  S.sessions=[]; S.log={}; S.prs={}; S.drafts={}; S.reviews={sessions:{},weeks:{},months:{}};
+  ['sessions','log','prs','drafts','reviews'].forEach(k=>save(k,S[k]));
+  localStorage.removeItem(K+'restTimer');
+  renderAll(); toast('Workout history cleared','ok');
 };
 
 function syncViewportHeight(){
@@ -3347,8 +3347,65 @@ promptForApiKeyAtStartup();
     const all=(s.exercises||[]).flatMap(x=>x.sets||[]);s.sets=all.length;s.reps=all.reduce((a,x)=>a+(+x.r||0),0);s.vol=Math.round(all.reduce((a,x)=>a+(+x.w||0)*(+x.r||0),0));
     save('sessions',S.sessions);syncSessionLogs(s);delete S.reviews.sessions[reviewSessionKey(s)];save('reviews',S.reviews);$('#session-dlg').close();renderAll();renderHistoryView();toast('Session updated · PRs recalculated','ok');
   }
+  function removeLogsForSession(session){
+    if(!session) return;
+    linkLegacyLogsToSessions();
+    const sid=session.id;
+    // First remove anything that is explicitly linked to this session.
+    for(const key of Object.keys(S.log)){
+      S.log[key]=(S.log[key]||[]).filter(e=>e.sessionId!==sid);
+      if(!S.log[key].length) delete S.log[key];
+    }
+    // Older Iron Ledger versions did not store sessionId on lift-history rows.
+    // Remove one exact legacy match for every exercise in the deleted session.
+    const exercises=Array.isArray(session.exercises)?session.exercises:[];
+    if(exercises.length){
+      for(const ex of exercises){
+        const arr=S.log[ex.id]||[];
+        let removed=false;
+        const sig=signatureSets(ex.sets||[]);
+        S.log[ex.id]=arr.filter(e=>{
+          if(removed || e.sessionId) return true;
+          if(e.date===session.date && signatureSets(e.sets||[])===sig){removed=true;return false;}
+          return true;
+        });
+        if(!S.log[ex.id]?.length) delete S.log[ex.id];
+      }
+    }else{
+      // Very old sessions may not contain an exercises array at all. In that
+      // case remove same-date lift rows belonging to that training day.
+      for(const key of Object.keys(S.log)){
+        const belongs=findItem(key)?.day===session.day;
+        if(!belongs) continue;
+        S.log[key]=(S.log[key]||[]).filter(e=>e.date!==session.date);
+        if(!S.log[key].length) delete S.log[key];
+      }
+    }
+  }
+  function invalidateReviewsForSession(session){
+    if(!S.reviews || typeof S.reviews!=='object') S.reviews={sessions:{},weeks:{},months:{}};
+    S.reviews.sessions ||= {}; S.reviews.weeks ||= {}; S.reviews.months ||= {};
+    delete S.reviews.sessions[reviewSessionKey(session)];
+    delete S.reviews.weeks[weekStart(session.date)];
+    delete S.reviews.months[monthKey(session.date)];
+  }
   function deleteSession(id){
-    if(!confirm('Delete this completed session? This also removes its linked lift history.'))return;makeAutoBackup();const ix=S.sessions.findIndex(x=>x.id===id);if(ix<0)return;const s=S.sessions[ix];S.sessions.splice(ix,1);for(const k of Object.keys(S.log)){S.log[k]=(S.log[k]||[]).filter(e=>e.sessionId!==id);if(!S.log[k].length)delete S.log[k];}delete S.reviews.sessions[reviewSessionKey(s)];save('sessions',S.sessions);save('log',S.log);save('reviews',S.reviews);recomputePRs();$('#session-dlg').close();renderAll();renderHistoryView();toast('Session deleted','ok');
+    ensureSessionIds();
+    const ix=S.sessions.findIndex(x=>x.id===id);
+    if(ix<0){toast('That session could not be found','bad');return;}
+    const session=S.sessions[ix];
+    if(!confirm(`Delete ${nice(session.date)} · Day ${String(session.day||'').toUpperCase()}?
+
+This removes the completed workout, its lift-history rows, affected PRs and saved reviews.`)) return;
+    makeAutoBackup(true);
+    removeLogsForSession(session);
+    S.sessions.splice(ix,1);
+    invalidateReviewsForSession(session);
+    save('sessions',S.sessions); save('log',S.log); save('reviews',S.reviews);
+    recomputePRs();
+    $('#session-dlg').close();
+    renderAll(); renderHistoryView(); renderStandoutViews();
+    toast('Session permanently removed · PRs recalculated','ok');
   }
 
   function blockGuidance(){
@@ -3423,7 +3480,40 @@ promptForApiKeyAtStartup();
 
   $('#btn-export').onclick=()=>{const blob=new Blob([JSON.stringify(backupObject(),null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`iron-ledger-full-${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Full backup exported','ok');};
   $('#btn-import').onclick=()=>{const inp=document.createElement('input');inp.type='file';inp.accept='.json';inp.onchange=async()=>{try{makeAutoBackup();const d=JSON.parse(await inp.files[0].text());for(const k of ['program','log','sessions','prs','drafts','chat','reviews','goals','settings','bodyweight','trainingBlock','planChanges'])if(d[k]!=null){S[k]=d[k];save(k,d[k]);}linkLegacyLogsToSessions();recomputePRs();renderAll();toast('Full backup imported','ok');}catch{toast('That file is not valid','bad');}};inp.click();};
-  $('#btn-wipe').onclick=()=>{if(!confirm('Wipe every session, PR and plan change on this device? A safety backup will be kept.'))return;makeAutoBackup(true);const safety=localStorage.getItem(K+'autoBackup');Object.keys(localStorage).filter(k=>k.startsWith(K)).forEach(k=>localStorage.removeItem(k));if(safety)localStorage.setItem(K+'autoBackup',safety);location.reload();};
+  function clearWorkoutHistory(){
+    const count=S.sessions.length;
+    makeAutoBackup(true);
+    S.sessions=[]; S.log={}; S.prs={}; S.drafts={};
+    S.reviews={sessions:{},weeks:{},months:{}};
+    save('sessions',S.sessions); save('log',S.log); save('prs',S.prs); save('drafts',S.drafts); save('reviews',S.reviews);
+    localStorage.removeItem(K+'restTimer');
+    try{clearInterval(restT);}catch{} restTotal=0; restEnd=0;
+    $('#timer')?.classList.remove('on');
+    $('#dlg').close();
+    renderAll(); renderHistoryView(); renderStandoutViews();
+    toast(count?`${count} completed session${count===1?'':'s'} removed · workout history is empty`:'Workout history was already empty','ok');
+  }
+  function openClearHistoryDialog(){
+    $('#dlg-title').textContent='Clear workout history';
+    $('#dlg-body').innerHTML=`
+      <div class="tool-card" style="display:grid;gap:8px">
+        <strong>This clears the training history on this device.</strong>
+        <div class="fine">It removes completed sessions, exercise history, PRs, session/week/month reviews, current workout drafts and active rest/session timers.</div>
+        <div class="fine">Your exercise program, strength goals, bodyweight entries, app settings and Gemini API key are kept. A safety backup is created first so you can restore it from App settings if needed.</div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:4px">
+        <button class="mini ghost" id="clear-history-cancel" type="button">Cancel</button>
+        <button class="mini solid danger" id="clear-history-confirm" type="button">Clear all workout history</button>
+      </div>`;
+    $('#dlg').showModal();
+    $('#clear-history-cancel').onclick=()=>$('#dlg').close();
+    $('#clear-history-confirm').onclick=()=>{
+      const n=S.sessions.length;
+      if(!confirm(`Clear ${n} completed session${n===1?'':'s'} and all linked workout history?`)) return;
+      clearWorkoutHistory();
+    };
+  }
+  $('#btn-wipe').onclick=openClearHistoryDialog;
 
   function renderStandoutSettings(){
     const b=$('#btn-rest-alerts');if(b)b.innerHTML=`<span class="settings-switch ${S.settings.restAlerts?'on':''}"><span class="switch-dot"><i></i></span>${S.settings.restAlerts?'On':'Off'}</span>`;
@@ -3462,11 +3552,11 @@ promptForApiKeyAtStartup();
 
   /* Floating rest timer */
   const rw=$('#timer');
-  if(rw){document.body.appendChild(rw);if(!rw.querySelector('.timer-drag'))rw.insertAdjacentHTML('afterbegin','<button class="timer-drag" id="timer-drag" type="button" aria-label="Move rest timer" title="Drag to move">⠿</button>');const main=rw.querySelector('.timer-ring')?.nextElementSibling;if(main)main.classList.add('timer-main');if(!rw.classList.contains('on')){$('#t-count').textContent='0:00';$('#t-label').textContent='Rest ready';}
+  if(rw){document.body.appendChild(rw);if(!rw.querySelector('.timer-drag'))rw.insertAdjacentHTML('afterbegin','<button class="timer-drag" id="timer-drag" type="button" aria-label="Move rest timer" title="Drag to move">⠿</button>');const main=rw.querySelector('.timer-ring')?.nextElementSibling;if(main)main.classList.add('timer-main');if(!rw.classList.contains('on')){rw.classList.remove('on');}
     const place=()=>{const p=S.settings.restTimerPosition;if(!p||!Number.isFinite(+p.x)||!Number.isFinite(+p.y))return;const r=rw.getBoundingClientRect(),x=Math.max(6,Math.min(innerWidth-r.width-6,+p.x)),y=Math.max(6,Math.min(innerHeight-r.height-6,+p.y));rw.style.left=x+'px';rw.style.top=y+'px';rw.style.right='auto';rw.style.bottom='auto';};requestAnimationFrame(place);addEventListener('resize',()=>requestAnimationFrame(place),{passive:true});
-    const h=$('#timer-drag');let drag=null;h?.addEventListener('pointerdown',e=>{if(e.button!=null&&e.button!==0)return;const r=rw.getBoundingClientRect();drag={id:e.pointerId,dx:e.clientX-r.left,dy:e.clientY-r.top};rw.classList.add('dragging');h.setPointerCapture?.(e.pointerId);e.preventDefault();});h?.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const r=rw.getBoundingClientRect(),x=Math.max(6,Math.min(innerWidth-r.width-6,e.clientX-drag.dx)),y=Math.max(6,Math.min(innerHeight-r.height-6,e.clientY-drag.dy));rw.style.left=x+'px';rw.style.top=y+'px';rw.style.right='auto';rw.style.bottom='auto';e.preventDefault();});const end=e=>{if(!drag||(e.pointerId!=null&&drag.id!==e.pointerId))return;const r=rw.getBoundingClientRect();S.settings.restTimerPosition={x:Math.round(r.left),y:Math.round(r.top)};save('settings',S.settings);rw.classList.remove('dragging');drag=null;};h?.addEventListener('pointerup',end);h?.addEventListener('pointercancel',end);h?.addEventListener('dblclick',()=>{delete S.settings.restTimerPosition;save('settings',S.settings);rw.removeAttribute('style');toast('Rest timer position reset');});rw.addEventListener('click',e=>{if(e.target.closest('[data-t="skip"]'))setTimeout(()=>{if(!rw.classList.contains('on')){$('#t-count').textContent='0:00';$('#t-label').textContent='Rest ready';localStorage.removeItem(K+'restTimer');}},0);});
+    const h=$('#timer-drag');let drag=null;h?.addEventListener('pointerdown',e=>{if(e.button!=null&&e.button!==0)return;const r=rw.getBoundingClientRect();drag={id:e.pointerId,dx:e.clientX-r.left,dy:e.clientY-r.top};rw.classList.add('dragging');h.setPointerCapture?.(e.pointerId);e.preventDefault();});h?.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const r=rw.getBoundingClientRect(),x=Math.max(6,Math.min(innerWidth-r.width-6,e.clientX-drag.dx)),y=Math.max(6,Math.min(innerHeight-r.height-6,e.clientY-drag.dy));rw.style.left=x+'px';rw.style.top=y+'px';rw.style.right='auto';rw.style.bottom='auto';e.preventDefault();});const end=e=>{if(!drag||(e.pointerId!=null&&drag.id!==e.pointerId))return;const r=rw.getBoundingClientRect();S.settings.restTimerPosition={x:Math.round(r.left),y:Math.round(r.top)};save('settings',S.settings);rw.classList.remove('dragging');drag=null;};h?.addEventListener('pointerup',end);h?.addEventListener('pointercancel',end);h?.addEventListener('dblclick',()=>{delete S.settings.restTimerPosition;save('settings',S.settings);rw.removeAttribute('style');toast('Rest timer position reset');});rw.addEventListener('click',e=>{if(e.target.closest('[data-t="skip"]'))setTimeout(()=>{if(!rw.classList.contains('on'))localStorage.removeItem(K+'restTimer');},0);});
   }
-  const tick0=tickRest;tickRest=function(){const active=restEnd>Date.now();tick0();if(active&&restEnd<=Date.now())setTimeout(()=>{if(!$('#timer').classList.contains('on')){$('#t-count').textContent='0:00';$('#t-label').textContent='Rest ready';}},2250);};if(restT&&restEnd>Date.now()){clearInterval(restT);tickRest();restT=setInterval(tickRest,250);}
+  const tick0=tickRest;tickRest=function(){tick0();};if(restT&&restEnd>Date.now()){clearInterval(restT);tickRest();restT=setInterval(tickRest,250);}
 
   /* Session stopwatch */
   const oldClock=$('#sess-clock'),sp=oldClock?.closest('.panel');if(sp){oldClock.closest('.right')?.remove();sp.querySelector('.panel-head')?.insertAdjacentHTML('afterend','<div class="session-timer-bar"><div class="session-timer-copy"><span class="session-timer-label">Session elapsed</span><strong class="session-elapsed" id="sess-clock">00:00:00</strong></div><div class="session-timer-actions"><button class="mini solid" id="btn-session-start" type="button">Start</button><button class="mini ghost" id="btn-session-reset" type="button">Reset</button></div></div>');}
@@ -3489,8 +3579,8 @@ promptForApiKeyAtStartup();
   const tab=$('#tab-chat');if(tab&&!$('#coach-context'))tab.insertAdjacentHTML('afterbegin','<div class="coach-context" id="coach-context"></div>');let focus=null;
   function focusData(item){return{label:'About this workout',exercise:item.name,day:S.day.toUpperCase(),prescription:`${workSetsFor(item)} x ${item.reps}`,restSeconds:item.rest,nextTarget:nextTarget(item),todayTarget:sessionTarget(item),currentSets:setsOf(S.day,item).filter(s=>s.w||s.r||s.done).map(s=>({weight:+s.w||0,reps:+s.r||0,rir:s.rir===''?null:+s.rir,done:!!s.done})),recentHistory:history(item.id).slice(-6),pr:S.prs[item.id]||null,readiness:{...draft().readiness,score:readinessScore(),applied:!!draft().readinessApplied},fatigue:fatigueStatus()};}
   function starterVisibility(){const p=$('#coach-context-prompts');if(p)p.hidden=!!$('#ask').value.trim();}
-  function drawFocus(){const el=$('#coach-context');if(!el)return;if(!focus){el.className='coach-context';el.innerHTML='';$('#ask').placeholder='Ask your coach anything...';return;}const item=findItem(focus.id)?.item||focus.item;if(!item){focus=null;drawFocus();return;}const t=sessionTarget(item),target=t.weight?`${t.weight}kg · ${t.sets}×${item.reps} · ~${t.rir} RIR`:`${t.sets}×${item.reps} · ~${t.rir} RIR`,qs=['What should I change on my next set?','Is today’s weight right for me?','Compare this with my last workout.','Should I add weight next session?','Review my RIR and progression.'];el.className='coach-context show';el.innerHTML=`<div class="coach-context-head"><div class="coach-context-copy"><div class="coach-context-kicker">About this workout</div><div class="coach-context-title">${esc(item.name)}</div><div class="coach-context-sub">Today · ${esc(target)}. Ask your own question or tap a starter.</div></div><button class="coach-context-close" type="button" data-close-focus aria-label="Clear exercise context">×</button></div><div class="coach-context-prompts" id="coach-context-prompts">${qs.map(q=>`<button class="coach-prompt-chip" type="button" data-starter="${esc(q)}">${esc(q)}</button>`).join('')}</div>`;$('#ask').placeholder=`Ask about ${item.name}…`;starterVisibility();}
-  function openFocus(item){focus={id:item.id,item};drawFocus();applyCoachSheetState(true,{returnFocus:false});setTimeout(()=>{coachStream.scrollTop=coachStream.scrollHeight;},160);}
+  function drawFocus(){const el=$('#coach-context');if(!el)return;if(!focus){el.className='coach-context';el.innerHTML='';$('#ask').placeholder='Ask your coach anything...';return;}const item=findItem(focus.id)?.item||focus.item;if(!item){focus=null;drawFocus();return;}const t=sessionTarget(item),target=t.weight?`${t.weight}kg · ${t.sets}×${item.reps} · ~${t.rir} RIR`:`${t.sets}×${item.reps} · ~${t.rir} RIR`,qs=['What should I change on my next set?','Is today’s weight right for me?','Compare this with my last workout.','Should I add weight next session?','Review my RIR and progression.'];el.className='coach-context show';el.innerHTML=`<div class="coach-context-head"><div class="coach-context-copy"><div class="coach-context-kicker">About this workout:</div><div class="coach-context-title">${esc(item.name)}</div><div class="coach-context-sub">Today · ${esc(target)}. This exercise is now attached to your next Coach message. Type your own question or tap a starter below.</div></div><button class="coach-context-close" type="button" data-close-focus aria-label="Clear exercise context">×</button></div><div class="coach-context-prompts" id="coach-context-prompts">${qs.map(q=>`<button class="coach-prompt-chip" type="button" data-starter="${esc(q)}">${esc(q)}</button>`).join('')}</div>`;$('#ask').placeholder=`About this workout: ${item.name} — ask your question…`;starterVisibility();}
+  function openFocus(item){focus={id:item.id,item};drawFocus();applyCoachSheetState(true,{returnFocus:false});setTimeout(()=>{const ctx=$('#coach-context');if(ctx?.scrollIntoView)ctx.scrollIntoView({block:'nearest'});else coachStream.scrollTop=coachStream.scrollHeight;},160);}
   $('#coach-context')?.addEventListener('click',e=>{if(e.target.closest('[data-close-focus]')){focus=null;drawFocus();return;}const q=e.target.closest('[data-starter]')?.dataset.starter;if(q){const a=$('#ask');a.value=q;a.dispatchEvent(new Event('input',{bubbles:true}));a.focus();a.setSelectionRange(a.value.length,a.value.length);}});$('#ask')?.addEventListener('input',starterVisibility);
   $('#blocks')?.addEventListener('click',e=>{const a=e.target.closest('[data-act="ask"]');if(!a)return;const card=a.closest('.ex'),item=card?findItem(card.dataset.ex)?.item:null;if(!item)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();openFocus(item);},true);
   const snap0=snapshot;snapshot=function(){let d;try{d=JSON.parse(snap0());}catch{return snap0();}if(focus){const item=findItem(focus.id)?.item||focus.item;if(item)d.coachFocus=focusData(item);}return JSON.stringify(d);};const full0=fullReviewContext;fullReviewContext=function(mode='full'){let d;try{d=JSON.parse(full0(mode));}catch{return full0(mode);}if(focus){const item=findItem(focus.id)?.item||focus.item;if(item)d.coachFocus=focusData(item);}return JSON.stringify(d);};
